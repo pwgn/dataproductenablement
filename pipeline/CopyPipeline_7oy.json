@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy_7oy",
+				"name": "SourceToRaw",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
