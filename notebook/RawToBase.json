@@ -50,9 +50,9 @@
 					"import delta\n",
 					"\n",
 					"RAW_PARQUET_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/*.parquet'\n",
-					"BASE_DELTALAKE_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/base_gpu'"
+					"BASE_DELTALAKE_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/gpu'"
 				],
-				"execution_count": 13
+				"execution_count": 20
 			},
 			{
 				"cell_type": "code",
@@ -84,11 +84,12 @@
 					"# Load RAW data\n",
 					"df = spark.read.parquet(RAW_PARQUET_PATH)"
 				],
-				"execution_count": 14
+				"execution_count": 21
 			},
 			{
 				"cell_type": "code",
 				"metadata": {
+					"outputCollapsed": true,
 					"diagram": {
 						"activateDiagramType": 1,
 						"chartConfig": {
@@ -118,28 +119,107 @@
 					"\n",
 					"display(base_gpu)"
 				],
-				"execution_count": 15
+				"execution_count": 22
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					"base.write.format('delta').save(BASE_DELTALAKE_PATH)"
 				],
-				"execution_count": 16
+				"execution_count": 23
 			},
 			{
 				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [],
+							"values": [],
+							"yLabel": "",
+							"xLabel": "",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": true
+					}
+				},
 				"source": [
 					"%%sql\n",
 					"CREATE DATABASE delta;\n",
+					""
+				],
+				"execution_count": 37
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [],
+							"values": [],
+							"yLabel": "",
+							"xLabel": "",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": true
+					}
+				},
+				"source": [
+					"%%sql\n",
 					"\n",
 					"CREATE TABLE delta.gpu\n",
 					"USING DELTA\n",
-					"LOCATION 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/base_gpu'\n",
-					"\n",
-					"SELECT * FROM delta.gpu"
+					"LOCATION 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/gpu'\n",
+					""
 				],
-				"execution_count": 19
+				"execution_count": 41
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"col_name"
+							],
+							"values": [
+								"col_name"
+							],
+							"yLabel": "col_name",
+							"xLabel": "col_name",
+							"aggregation": "COUNT",
+							"aggByBackend": false
+						},
+						"aggData": "{\"col_name\":{\"\":1,\"# Partitioning\":1,\"Architecture\":1,\"Best_Resolution\":1,\"Boost_Clock\":1,\"Core_Speed\":1,\"DVI_Connection\":1,\"Dedicated\":1,\"Direct_X\":1,\"DisplayPort_Connection\":1,\"HDMI_Connection\":1,\"Integrated\":1,\"L2_Cache\":1,\"Manufacturer\":1,\"Max_Power\":1,\"Memory\":1,\"Memory_Bandwidth\":1,\"Memory_Bus\":1,\"Memory_Speed\":1,\"Memory_Type\":1,\"Name\":1,\"Not partitioned\":1,\"Notebook_GPU\":1,\"Open_GL\":1,\"PSU\":1,\"Pixel_Rate\":1,\"Power_Connector\":1,\"Process\":1,\"ROPs\":1,\"Release_Date\":1,\"Release_Price\":1,\"Resolution_WxH\":1,\"SLI_Crossfire\":1,\"Shader\":1,\"TMUs\":1,\"Texture_Rate\":1,\"VGA_Connection\":1}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": true
+					}
+				},
+				"source": [
+					"%%sql\n",
+					"describe delta.gpu"
+				],
+				"execution_count": 42
 			}
 		]
 	}
