@@ -1,5 +1,5 @@
 {
-	"name": "CopyPipeline_7oy",
+	"name": "SourceToRaw",
 	"properties": {
 		"activities": [
 			{
