@@ -38,14 +38,12 @@
 						}
 					},
 					"sink": {
-						"type": "DelimitedTextSink",
+						"type": "ParquetSink",
 						"storeSettings": {
 							"type": "AzureBlobFSWriteSettings"
 						},
 						"formatSettings": {
-							"type": "DelimitedTextWriteSettings",
-							"quoteAllText": true,
-							"fileExtension": ".txt"
+							"type": "ParquetWriteSettings"
 						}
 					},
 					"enableStaging": false,
@@ -53,13 +51,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "SourceDataset_7oy",
+						"referenceName": "SourceGPU",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "DestinationDataset_7oy",
+						"referenceName": "RawGPUParquet",
 						"type": "DatasetReference"
 					}
 				]
