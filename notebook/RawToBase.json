@@ -50,9 +50,9 @@
 					"import delta\n",
 					"\n",
 					"RAW_PARQUET_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/*.parquet'\n",
-					"BASE_DELTALAKE_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/gpu'"
+					"BASE_DELTALAKE_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu'"
 				],
-				"execution_count": 20
+				"execution_count": 1
 			},
 			{
 				"cell_type": "code",
@@ -84,12 +84,11 @@
 					"# Load RAW data\n",
 					"df = spark.read.parquet(RAW_PARQUET_PATH)"
 				],
-				"execution_count": 21
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
 				"metadata": {
-					"outputCollapsed": true,
 					"diagram": {
 						"activateDiagramType": 1,
 						"chartConfig": {
@@ -119,14 +118,14 @@
 					"\n",
 					"display(base_gpu)"
 				],
-				"execution_count": 22
+				"execution_count": 3
 			},
 			{
 				"cell_type": "code",
 				"source": [
-					"base.write.format('delta').save(BASE_DELTALAKE_PATH)"
+					"base_gpu.write.format('delta').save(BASE_DELTALAKE_PATH)"
 				],
-				"execution_count": 23
+				"execution_count": 11
 			},
 			{
 				"cell_type": "code",
@@ -154,7 +153,35 @@
 					"%%sql\n",
 					"CREATE DATABASE delta;"
 				],
-				"execution_count": 37
+				"execution_count": 4
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [],
+							"values": [],
+							"yLabel": "",
+							"xLabel": "",
+							"aggregation": "SUM",
+							"aggByBackend": false
+						},
+						"aggData": "{}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": true
+					}
+				},
+				"source": [
+					"%%sql\n",
+					"DROP TABLE IF EXISTS delta.gpu;"
+				],
+				"execution_count": 12
 			},
 			{
 				"cell_type": "code",
@@ -183,10 +210,43 @@
 					"\n",
 					"CREATE TABLE delta.gpu\n",
 					"USING DELTA\n",
-					"LOCATION 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu/gpu'\n",
+					"LOCATION 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu';\n",
 					""
 				],
-				"execution_count": 41
+				"execution_count": 13
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"diagram": {
+						"activateDiagramType": 1,
+						"chartConfig": {
+							"category": "bar",
+							"keys": [
+								"Architecture"
+							],
+							"values": [
+								"Architecture"
+							],
+							"yLabel": "Architecture",
+							"xLabel": "Architecture",
+							"aggregation": "COUNT",
+							"aggByBackend": false
+						},
+						"aggData": "{\"Architecture\":{\"\":22,\"arrandale\":6,\"beavercreek\":2,\"broadwell gt3\":1,\"broadwell gt3-e\":6,\"cantiga\":2,\"cayman le gl\":1,\"cayman pro gl\":1,\"cypress xt\":1,\"evergreen juniper xt gl\":1,\"fermi gf100\":3,\"fermi gf110\":1,\"gcn\":1,\"gcn 1.0 ????\":1,\"gcn 1.0 chelsea le\":1,\"gcn 1.0 chelsea pro\":1,\"gcn 1.0 chelsea xt\":2,\"gcn 1.0 heathrow pro\":1,\"gcn 1.0 heathrow xt\":1,\"gcn 1.0 tahiti pro\":1,\"gcn 1.0 tahiti pro gl\":2,\"gcn 1.0 venus pro\":1,\"gcn 1.0 venus xtx\":2,\"gcn 1.0 wimbledon pro\":1,\"gcn 1.0 wimbledon xt\":1,\"gcn 1.0 wimbledon xt (x2)\":1,\"gcn 1.1 exo xt\":2,\"gcn 1.1 godavari-kv-a1\":1,\"gcn 1.1 jet pro\":1,\"gcn 1.1 jet xt\":1,\"gcn 1.1 kaveri-kv-a1\":1,\"gcn 1.1 mars le\":1,\"gcn 1.1 mars pro\":3,\"gcn 1.1 mars xt\":8,\"gcn 1.1 mars xtx\":1,\"gcn 1.1 meso pro\":1,\"gcn 1.1 neptune xt\":4,\"gcn 1.1 neptune xt (x2)\":2,\"gcn 1.1 oland pro\":1,\"gcn 1.1 oland xt + kaveri\":1,\"gcn 1.1 opal xt\":1,\"gcn 1.1 saturn pro\":2,\"gcn 1.1 saturn xt\":2,\"gcn 1.1 sun le\":1,\"gcn 1.1 sun pro\":4,\"gcn 1.1 topaz xt\":1,\"gcn 1.1 venus le\":1,\"gcn 1.1 venus pro\":3,\"gcn 1.1 venus xt\":2,\"gcn 1.1 venus xtx\":1,\"gcn 1.2 amethyst xt\":2,\"gcn 1.2 strato pro\":1,\"gcn 2.0 hawaii xt gl\":2,\"haswell gt3\":1,\"haswell gt3e\":1,\"jet le\":1,\"jet pro\":1,\"kabini\":2,\"kalindi\":4,\"kalindi lp\":3,\"kaveri\":3,\"kaveri spectre\":6,\"kepler gk104 x2\":1,\"kepler gk110\":3,\"kepler gk110-400-a1\":9,\"kepler gk110-400-a1 (x2)\":1,\"kepler gk110-430-b1\":1,\"kepler gk110-430-b1 (x2)\":2,\"kepler gk110b\":2,\"loveland\":1,\"m62\":1,\"m64\":1,\"m66\":1,\"m92\":4,\"m96\":3,\"m96 xt\":1,\"maxwell gm200-400-a1\":3,\"maxwell gm200-400-a1 (x2)\":2,\"montara-gm\":1,\"nv17 a3\":2,\"nv18 a4\":2,\"nv25 a2\":2,\"nv28\":1,\"nv28gl a2\":2,\"park xt\":1,\"pascal gp102\":2,\"pascal p100\":2,\"pitcairn le\":1,\"pitcairn xt\":2,\"pitcairn xt gl\":1,\"r200\":2,\"r300\":2,\"r360\":2,\"r520\":1,\"r600 gt\":1,\"r600 pro\":1,\"r600 rv670 xt\":2,\"r600 xt\":1,\"r700 rv710\":5,\"r700 rv730 pro\":2,\"r700 rv730 xt\":6,\"r700 rv730pro\":2,\"r700 rv740 pro\":1,\"r700 rv770 pro\":9,\"r700 rv790 le\":2,\"r700 rv790 xt\":6,\"r700 xt\":1,\"richland\":3,\"rs690m\":1,\"rs740\":1,\"rs760\":1,\"rs780\":2,\"rs780d\":1,\"rs880\":2,\"rs880d\":1,\"rv100\":1,\"rv200\":1,\"rv250\":2,\"rv280\":2,\"rv350\":2,\"rv360\":2,\"rv370\":1,\"rv380\":1,\"rv410\":1,\"rv515\":2,\"rv530\":1,\"rv535\":1,\"rv570\":1,\"rv610\":6,\"rv620\":1,\"rv620 le\":1,\"rv620 pro\":1,\"rv630\":4,\"rv635\":1,\"rv635 pro\":1,\"rv670\":2,\"rv670 pro\":6,\"rv730\":2,\"rv740 pro\":1,\"rv770\":2,\"rv770 ce\":2,\"rv770 pro\":1,\"rv770 xt\":2,\"rv790 gt\":1,\"rv870\":3,\"saturn xt\":1,\"scrapper\":1,\"skylake gt1-u\":1,\"skylake gt3-e\":9,\"tahiti le\":1,\"tahiti pro\":1,\"tahiti xt\":1,\"tahiti xt gl\":1,\"terascale 2 blackcomb pro\":1,\"terascale 2 blackcomb xt\":1,\"terascale 2 blackcomb xtx\":1,\"terascale 2 broadway le\":1,\"terascale 2 broadway pro\":1,\"terascale 2 broadway xt\":1,\"terascale 2 broadway xt (x2)\":1,\"terascale 2 capilano le\":1,\"terascale 2 capilano pro\":1,\"terascale 2 capilano xt\":1,\"terascale 2 granville lp\":1,\"terascale 2 granville pro\":1,\"terascale 2 granville xt\":1,\"terascale 2 loveland\":3,\"terascale 2 madison le\":1,\"terascale 2 madison lp\":1,\"terascale 2 madison pro\":1,\"terascale 2 madison xt\":1,\"terascale 2 park lp\":1,\"terascale 2 park pro\":1,\"terascale 2 park xt\":1,\"terascale 2 robson le\":2,\"terascale 2 robson pro\":2,\"terascale 2 robson xt\":2,\"terascale 2 seymour le\":1,\"terascale 2 seymour pro\":3,\"terascale 2 seymour xt\":2,\"terascale 2 seymour xtx\":2,\"terascale 2 thames le\":2,\"terascale 2 thames lp\":2,\"terascale 2 thames pro\":7,\"terascale 2 thames xt\":4,\"terascale 2 thames xtx\":1,\"terascale 2 whistler le\":2,\"terascale 2 whistler lp\":1,\"terascale 2 whistler pro\":2,\"terascale 2 whistler xt\":2,\"terascale 3\":1,\"terrascale 2\":2,\"terrascale 3\":1,\"tesla g92b\":1,\"tesla g94b\":2,\"tesla g96b\":1,\"tesla g98\":1,\"tonga\":1,\"trinity\":1,\"turks\":1,\"venus xt\":1,\"winterpark\":2,\"zacate\":3}}",
+						"isSummary": false,
+						"previewData": {
+							"filter": null
+						},
+						"isSql": true
+					}
+				},
+				"source": [
+					"%%sql\n",
+					"\n",
+					"SELECT * FROM delta.gpu"
+				],
+				"execution_count": 14
 			}
 		]
 	}
