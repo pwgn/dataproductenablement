@@ -63,7 +63,7 @@
 				]
 			},
 			{
-				"name": "ToRawTable",
+				"name": "RawToBase",
 				"type": "SynapseNotebook",
 				"dependsOn": [
 					{
@@ -83,7 +83,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"notebook": {
-						"referenceName": "ToRawTable",
+						"referenceName": "RawToBase",
 						"type": "NotebookReference"
 					},
 					"snapshot": true
