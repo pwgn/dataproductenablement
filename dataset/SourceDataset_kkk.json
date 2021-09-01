@@ -1,0 +1,159 @@
+{
+	"name": "SourceDataset_kkk",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "store",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "source"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Architecture",
+				"type": "String"
+			},
+			{
+				"name": "Best_Resolution",
+				"type": "String"
+			},
+			{
+				"name": "Boost_Clock",
+				"type": "String"
+			},
+			{
+				"name": "Core_Speed",
+				"type": "String"
+			},
+			{
+				"name": "DVI_Connection",
+				"type": "String"
+			},
+			{
+				"name": "Dedicated",
+				"type": "String"
+			},
+			{
+				"name": "Direct_X",
+				"type": "String"
+			},
+			{
+				"name": "DisplayPort_Connection",
+				"type": "String"
+			},
+			{
+				"name": "HDMI_Connection",
+				"type": "String"
+			},
+			{
+				"name": "Integrated",
+				"type": "String"
+			},
+			{
+				"name": "L2_Cache",
+				"type": "String"
+			},
+			{
+				"name": "Manufacturer",
+				"type": "String"
+			},
+			{
+				"name": "Max_Power",
+				"type": "String"
+			},
+			{
+				"name": "Memory",
+				"type": "String"
+			},
+			{
+				"name": "Memory_Bandwidth",
+				"type": "String"
+			},
+			{
+				"name": "Memory_Bus",
+				"type": "String"
+			},
+			{
+				"name": "Memory_Speed",
+				"type": "String"
+			},
+			{
+				"name": "Memory_Type",
+				"type": "String"
+			},
+			{
+				"name": "Name",
+				"type": "String"
+			},
+			{
+				"name": "Notebook_GPU",
+				"type": "String"
+			},
+			{
+				"name": "Open_GL",
+				"type": "String"
+			},
+			{
+				"name": "PSU",
+				"type": "String"
+			},
+			{
+				"name": "Pixel_Rate",
+				"type": "String"
+			},
+			{
+				"name": "Power_Connector",
+				"type": "String"
+			},
+			{
+				"name": "Process",
+				"type": "String"
+			},
+			{
+				"name": "ROPs",
+				"type": "String"
+			},
+			{
+				"name": "Release_Date",
+				"type": "String"
+			},
+			{
+				"name": "Release_Price",
+				"type": "String"
+			},
+			{
+				"name": "Resolution_WxH",
+				"type": "String"
+			},
+			{
+				"name": "SLI_Crossfire",
+				"type": "String"
+			},
+			{
+				"name": "Shader",
+				"type": "String"
+			},
+			{
+				"name": "TMUs",
+				"type": "String"
+			},
+			{
+				"name": "Texture_Rate",
+				"type": "String"
+			},
+			{
+				"name": "VGA_Connection",
+				"type": "String"
+			}
+		]
+	}
+}
