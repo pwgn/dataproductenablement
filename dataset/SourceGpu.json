@@ -1,5 +1,5 @@
 {
-	"name": "SourceDataset_kkk",
+	"name": "SourceGpu",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "store",

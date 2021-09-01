@@ -1,5 +1,5 @@
 {
-	"name": "DestinationDataset_kkk",
+	"name": "RawGpuParquet",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "store",

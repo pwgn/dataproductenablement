@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Copy_kkk",
+				"name": "SourceToRaw",
 				"type": "Copy",
 				"dependsOn": [],
 				"policy": {
@@ -59,13 +59,13 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "SourceDataset_kkk",
+						"referenceName": "SourceGpu",
 						"type": "DatasetReference"
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "DestinationDataset_kkk",
+						"referenceName": "RawGpuParquet",
 						"type": "DatasetReference",
 						"parameters": {
 							"cw_folderPath": "RAW/gpu/year=@{formatDateTime(pipeline().parameters.windowStart,'yyyy')}/month=@{formatDateTime(pipeline().parameters.windowStart,'MM')}/day=@{formatDateTime(pipeline().parameters.windowStart,'dd')}"
