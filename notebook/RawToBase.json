@@ -55,7 +55,7 @@
 					"\n",
 					"date_partition = datetime.now().strftime('year=%YY/month=%m/day=%d')\n",
 					"\n",
-					"print(date_partition)"
+					"print('date_partition:', date_partition)"
 				],
 				"execution_count": 8
 			},
