@@ -1,0 +1,28 @@
+{
+	"name": "DestinationDataset_kkk",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "store",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"cw_folderPath": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().cw_folderPath",
+					"type": "Expression"
+				},
+				"fileSystem": "lake"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}
