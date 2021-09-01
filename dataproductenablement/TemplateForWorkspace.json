@@ -1,0 +1,742 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "dataproductenablement"
+		},
+		"dataproductenablement-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'dataproductenablement-WorkspaceDefaultSqlServer'"
+		},
+		"store_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'store'"
+		},
+		"dataproductenablement-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dataproductenablement.dfs.core.windows.net"
+		},
+		"store_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://chrispstore.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/IncrementalSourceLoadToRaw')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "SourceToRaw",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "source//"
+							},
+							{
+								"name": "Destination",
+								"value": "lake/RAW/gpu/year=@{formatDateTime(pipeline().parameters.windowStart,'yyyy')}/month=@{formatDateTime(pipeline().parameters.windowStart,'MM')}/day=@{formatDateTime(pipeline().parameters.windowStart,'dd')}/"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": {
+										"value": "@pipeline().parameters.windowStart",
+										"type": "Expression"
+									},
+									"modifiedDatetimeEnd": {
+										"value": "@pipeline().parameters.windowEnd",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings",
+									"skipLineCount": 0
+								}
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"validateDataConsistency": true
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceGpu",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "RawGpuParquet",
+								"type": "DatasetReference",
+								"parameters": {
+									"cw_folderPath": "RAW/gpu/year=@{formatDateTime(pipeline().parameters.windowStart,'yyyy')}/month=@{formatDateTime(pipeline().parameters.windowStart,'MM')}/day=@{formatDateTime(pipeline().parameters.windowStart,'dd')}"
+								}
+							}
+						]
+					}
+				],
+				"parameters": {
+					"windowStart": {
+						"type": "String"
+					},
+					"windowEnd": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/SourceGpu')]",
+				"[concat(variables('workspaceId'), '/datasets/RawGpuParquet')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/RawGpuParquet')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "store",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"cw_folderPath": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().cw_folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "lake"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/store')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SourceGpu')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "store",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileSystem": "source"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Architecture",
+						"type": "String"
+					},
+					{
+						"name": "Best_Resolution",
+						"type": "String"
+					},
+					{
+						"name": "Boost_Clock",
+						"type": "String"
+					},
+					{
+						"name": "Core_Speed",
+						"type": "String"
+					},
+					{
+						"name": "DVI_Connection",
+						"type": "String"
+					},
+					{
+						"name": "Dedicated",
+						"type": "String"
+					},
+					{
+						"name": "Direct_X",
+						"type": "String"
+					},
+					{
+						"name": "DisplayPort_Connection",
+						"type": "String"
+					},
+					{
+						"name": "HDMI_Connection",
+						"type": "String"
+					},
+					{
+						"name": "Integrated",
+						"type": "String"
+					},
+					{
+						"name": "L2_Cache",
+						"type": "String"
+					},
+					{
+						"name": "Manufacturer",
+						"type": "String"
+					},
+					{
+						"name": "Max_Power",
+						"type": "String"
+					},
+					{
+						"name": "Memory",
+						"type": "String"
+					},
+					{
+						"name": "Memory_Bandwidth",
+						"type": "String"
+					},
+					{
+						"name": "Memory_Bus",
+						"type": "String"
+					},
+					{
+						"name": "Memory_Speed",
+						"type": "String"
+					},
+					{
+						"name": "Memory_Type",
+						"type": "String"
+					},
+					{
+						"name": "Name",
+						"type": "String"
+					},
+					{
+						"name": "Notebook_GPU",
+						"type": "String"
+					},
+					{
+						"name": "Open_GL",
+						"type": "String"
+					},
+					{
+						"name": "PSU",
+						"type": "String"
+					},
+					{
+						"name": "Pixel_Rate",
+						"type": "String"
+					},
+					{
+						"name": "Power_Connector",
+						"type": "String"
+					},
+					{
+						"name": "Process",
+						"type": "String"
+					},
+					{
+						"name": "ROPs",
+						"type": "String"
+					},
+					{
+						"name": "Release_Date",
+						"type": "String"
+					},
+					{
+						"name": "Release_Price",
+						"type": "String"
+					},
+					{
+						"name": "Resolution_WxH",
+						"type": "String"
+					},
+					{
+						"name": "SLI_Crossfire",
+						"type": "String"
+					},
+					{
+						"name": "Shader",
+						"type": "String"
+					},
+					{
+						"name": "TMUs",
+						"type": "String"
+					},
+					{
+						"name": "Texture_Rate",
+						"type": "String"
+					},
+					{
+						"name": "VGA_Connection",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/store')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dataproductenablement-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('dataproductenablement-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dataproductenablement-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('dataproductenablement-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/store')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('store_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('store_accountKey')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/RawToBase')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "DataProduct",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/c81cc72a-af55-4e1e-9ceb-7e3c58388c5d/resourceGroups/data-product-enablement/providers/Microsoft.Synapse/workspaces/dataproductenablement/bigDataPools/DataProduct",
+						"name": "DataProduct",
+						"type": "Spark",
+						"endpoint": "https://dataproductenablement.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/DataProduct",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 3,
+						"cores": 4,
+						"memory": 28,
+						"automaticScaleJobs": false
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"cellLanguage": "python",
+							"tags": [
+								"parameters"
+							]
+						},
+						"source": [
+							"from datetime import datetime\n",
+							"\n",
+							"date_partition = datetime.now().strftime('year=%YY/month=%m/day=%d')\n",
+							"\n",
+							"print(date_partition)"
+						],
+						"attachments": {},
+						"outputs": [],
+						"execution_count": 8
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"from pyspark.sql.functions import lower, col\n",
+							"import delta\n",
+							"\n",
+							"RAW_PARQUET_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/{partition}/*.parquet'.format(partition = date_partition)\n",
+							"BASE_DELTALAKE_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu'"
+						],
+						"outputs": [],
+						"execution_count": 10
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [
+										"Architecture"
+									],
+									"values": [
+										"Architecture"
+									],
+									"yLabel": "Architecture",
+									"xLabel": "Architecture",
+									"aggregation": "COUNT",
+									"aggByBackend": false
+								},
+								"aggData": "{\"Architecture\":{\"\":22,\"Arrandale\":6,\"BeaverCreek\":2,\"Broadwell GT3\":1,\"Broadwell GT3-E\":6,\"Cantiga\":2,\"Cayman LE GL\":1,\"Cayman Pro GL\":1,\"Cypress XT\":1,\"Evergreen Juniper XT GL\":1,\"Fermi GF100\":3,\"Fermi GF110\":1,\"GCN\":1,\"GCN 1.0 ????\":1,\"GCN 1.0 Chelsea LE\":1,\"GCN 1.0 Chelsea PRO\":1,\"GCN 1.0 Chelsea XT\":2,\"GCN 1.0 Heathrow Pro\":1,\"GCN 1.0 Heathrow XT\":1,\"GCN 1.0 Tahiti PRO\":1,\"GCN 1.0 Tahiti PRO GL\":2,\"GCN 1.0 Venus PRO\":1,\"GCN 1.0 Venus XTX\":2,\"GCN 1.0 Wimbledon PRO\":1,\"GCN 1.0 Wimbledon XT\":1,\"GCN 1.0 Wimbledon XT (x2)\":1,\"GCN 1.1 Exo XT\":2,\"GCN 1.1 Godavari-KV-A1\":1,\"GCN 1.1 Jet PRO\":1,\"GCN 1.1 Jet XT\":1,\"GCN 1.1 Kaveri-KV-A1\":1,\"GCN 1.1 Mars LE\":1,\"GCN 1.1 Mars PRO\":3,\"GCN 1.1 Mars XT\":8,\"GCN 1.1 Mars XTX\":1,\"GCN 1.1 Meso PRO\":1,\"GCN 1.1 Neptune XT\":4,\"GCN 1.1 Neptune XT (x2)\":2,\"GCN 1.1 Oland PRO\":1,\"GCN 1.1 Oland XT + Kaveri\":1,\"GCN 1.1 Opal XT\":1,\"GCN 1.1 Saturn PRO\":2,\"GCN 1.1 Saturn XT\":2,\"GCN 1.1 Sun LE\":1,\"GCN 1.1 Sun PRO\":4,\"GCN 1.1 Topaz XT\":1,\"GCN 1.1 Venus LE\":1,\"GCN 1.1 Venus PRO\":3,\"GCN 1.1 Venus XT\":2,\"GCN 1.1 Venus XTX\":1,\"GCN 1.2 Amethyst XT\":2,\"GCN 1.2 Strato PRO\":1,\"GCN 2.0 Hawaii XT GL\":2,\"Haswell GT3\":1,\"Haswell GT3e\":1,\"Jet LE\":1,\"Jet PRO\":1,\"Kabini\":2,\"Kalindi\":4,\"Kalindi LP\":3,\"Kaveri\":3,\"Kaveri Spectre\":6,\"Kepler GK104 x2\":1,\"Kepler GK110\":3,\"Kepler GK110-400-A1\":9,\"Kepler GK110-400-A1 (x2)\":1,\"Kepler GK110-430-B1\":1,\"Kepler GK110-430-B1 (x2)\":2,\"Kepler GK110B\":2,\"Loveland\":1,\"M62\":1,\"M64\":1,\"M66\":1,\"M92\":4,\"M96\":3,\"M96 XT\":1,\"Maxwell GM200-400-A1\":3,\"Maxwell GM200-400-A1 (x2)\":2,\"Montara-GM\":1,\"NV17 A3\":2,\"NV18 A4\":2,\"NV25 A2\":2,\"NV28\":1,\"NV28GL A2\":2,\"Park XT\":1,\"Pascal GP102\":2,\"Pascal P100\":2,\"Pitcairn LE\":1,\"Pitcairn XT\":2,\"Pitcairn XT GL\":1,\"R200\":2,\"R300\":2,\"R360\":2,\"R520\":1,\"R600 GT\":1,\"R600 PRO\":1,\"R600 RV670 XT\":2,\"R600 XT\":1,\"R700 RV710\":5,\"R700 RV730 PRO\":2,\"R700 RV730 XT\":6,\"R700 RV730PRO\":2,\"R700 RV740 PRO\":1,\"R700 RV770 PRO\":9,\"R700 RV790 LE\":2,\"R700 RV790 XT\":6,\"R700 XT\":1,\"RS690M\":1,\"RS740\":1,\"RS760\":1,\"RS780\":2,\"RS780D\":1,\"RS880\":2,\"RS880D\":1,\"RV100\":1,\"RV200\":1,\"RV250\":2,\"RV280\":2,\"RV350\":2,\"RV360\":2,\"RV370\":1,\"RV380\":1,\"RV410\":1,\"RV515\":2,\"RV530\":1,\"RV535\":1,\"RV570\":1,\"RV610\":6,\"RV620\":1,\"RV620 LE\":1,\"RV620 PRO\":1,\"RV630\":4,\"RV635\":1,\"RV635 PRO\":1,\"RV670\":2,\"RV670 PRO\":6,\"RV730\":2,\"RV740 PRO\":1,\"RV770\":2,\"RV770 CE\":2,\"RV770 PRO\":1,\"RV770 XT\":2,\"RV790 GT\":1,\"RV870\":3,\"Richland\":3,\"Saturn XT\":1,\"Scrapper\":1,\"Skylake GT1-U\":1,\"Skylake GT3-E\":9,\"Tahiti LE\":1,\"Tahiti Pro\":1,\"Tahiti XT\":1,\"Tahiti XT GL\":1,\"Terascale 2 Blackcomb PRO\":1,\"Terascale 2 Blackcomb XT\":1,\"Terascale 2 Blackcomb XTX\":1,\"Terascale 2 Broadway LE\":1,\"Terascale 2 Broadway PRO\":1,\"Terascale 2 Broadway XT\":1,\"Terascale 2 Broadway XT (x2)\":1,\"Terascale 2 Capilano LE\":1,\"Terascale 2 Capilano PRO\":1,\"Terascale 2 Capilano XT\":1,\"Terascale 2 Granville LP\":1,\"Terascale 2 Granville PRO\":1,\"Terascale 2 Granville XT\":1,\"Terascale 2 Loveland\":3,\"Terascale 2 Madison LE\":1,\"Terascale 2 Madison LP\":1,\"Terascale 2 Madison PRO\":1,\"Terascale 2 Madison XT\":1,\"Terascale 2 Park LP\":1,\"Terascale 2 Park PRO\":1,\"Terascale 2 Park XT\":1,\"Terascale 2 Robson LE\":2,\"Terascale 2 Robson PRO\":2,\"Terascale 2 Robson XT\":2,\"Terascale 2 Seymour LE\":1,\"Terascale 2 Seymour PRO\":3,\"Terascale 2 Seymour XT\":2,\"Terascale 2 Seymour XTX\":2,\"Terascale 2 Thames LE\":2,\"Terascale 2 Thames LP\":2,\"Terascale 2 Thames PRO\":7,\"Terascale 2 Thames XT\":4,\"Terascale 2 Thames XTX\":1,\"Terascale 2 Whistler LE\":2,\"Terascale 2 Whistler LP\":1,\"Terascale 2 Whistler PRO\":2,\"Terascale 2 Whistler XT\":2,\"Terascale 3\":1,\"Terrascale 2\":2,\"Terrascale 3\":1,\"Tesla G92b\":1,\"Tesla G94b\":2,\"Tesla G96b\":1,\"Tesla G98\":1,\"Tonga\":1,\"Trinity\":1,\"Turks\":1,\"Venus XT\":1,\"WinterPark\":2,\"Zacate\":3}}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": false
+							}
+						},
+						"source": [
+							"# Load RAW data\n",
+							"df = spark.read.parquet(RAW_PARQUET_PATH)"
+						],
+						"outputs": [],
+						"execution_count": 2
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [
+										"Architecture"
+									],
+									"values": [
+										"Architecture"
+									],
+									"yLabel": "Architecture",
+									"xLabel": "Architecture",
+									"aggregation": "COUNT",
+									"aggByBackend": false
+								},
+								"aggData": "{\"Architecture\":{\"\":22,\"arrandale\":6,\"beavercreek\":2,\"broadwell gt3\":1,\"broadwell gt3-e\":6,\"cantiga\":2,\"cayman le gl\":1,\"cayman pro gl\":1,\"cypress xt\":1,\"evergreen juniper xt gl\":1,\"fermi gf100\":3,\"fermi gf110\":1,\"gcn\":1,\"gcn 1.0 ????\":1,\"gcn 1.0 chelsea le\":1,\"gcn 1.0 chelsea pro\":1,\"gcn 1.0 chelsea xt\":2,\"gcn 1.0 heathrow pro\":1,\"gcn 1.0 heathrow xt\":1,\"gcn 1.0 tahiti pro\":1,\"gcn 1.0 tahiti pro gl\":2,\"gcn 1.0 venus pro\":1,\"gcn 1.0 venus xtx\":2,\"gcn 1.0 wimbledon pro\":1,\"gcn 1.0 wimbledon xt\":1,\"gcn 1.0 wimbledon xt (x2)\":1,\"gcn 1.1 exo xt\":2,\"gcn 1.1 godavari-kv-a1\":1,\"gcn 1.1 jet pro\":1,\"gcn 1.1 jet xt\":1,\"gcn 1.1 kaveri-kv-a1\":1,\"gcn 1.1 mars le\":1,\"gcn 1.1 mars pro\":3,\"gcn 1.1 mars xt\":8,\"gcn 1.1 mars xtx\":1,\"gcn 1.1 meso pro\":1,\"gcn 1.1 neptune xt\":4,\"gcn 1.1 neptune xt (x2)\":2,\"gcn 1.1 oland pro\":1,\"gcn 1.1 oland xt + kaveri\":1,\"gcn 1.1 opal xt\":1,\"gcn 1.1 saturn pro\":2,\"gcn 1.1 saturn xt\":2,\"gcn 1.1 sun le\":1,\"gcn 1.1 sun pro\":4,\"gcn 1.1 topaz xt\":1,\"gcn 1.1 venus le\":1,\"gcn 1.1 venus pro\":3,\"gcn 1.1 venus xt\":2,\"gcn 1.1 venus xtx\":1,\"gcn 1.2 amethyst xt\":2,\"gcn 1.2 strato pro\":1,\"gcn 2.0 hawaii xt gl\":2,\"haswell gt3\":1,\"haswell gt3e\":1,\"jet le\":1,\"jet pro\":1,\"kabini\":2,\"kalindi\":4,\"kalindi lp\":3,\"kaveri\":3,\"kaveri spectre\":6,\"kepler gk104 x2\":1,\"kepler gk110\":3,\"kepler gk110-400-a1\":9,\"kepler gk110-400-a1 (x2)\":1,\"kepler gk110-430-b1\":1,\"kepler gk110-430-b1 (x2)\":2,\"kepler gk110b\":2,\"loveland\":1,\"m62\":1,\"m64\":1,\"m66\":1,\"m92\":4,\"m96\":3,\"m96 xt\":1,\"maxwell gm200-400-a1\":3,\"maxwell gm200-400-a1 (x2)\":2,\"montara-gm\":1,\"nv17 a3\":2,\"nv18 a4\":2,\"nv25 a2\":2,\"nv28\":1,\"nv28gl a2\":2,\"park xt\":1,\"pascal gp102\":2,\"pascal p100\":2,\"pitcairn le\":1,\"pitcairn xt\":2,\"pitcairn xt gl\":1,\"r200\":2,\"r300\":2,\"r360\":2,\"r520\":1,\"r600 gt\":1,\"r600 pro\":1,\"r600 rv670 xt\":2,\"r600 xt\":1,\"r700 rv710\":5,\"r700 rv730 pro\":2,\"r700 rv730 xt\":6,\"r700 rv730pro\":2,\"r700 rv740 pro\":1,\"r700 rv770 pro\":9,\"r700 rv790 le\":2,\"r700 rv790 xt\":6,\"r700 xt\":1,\"richland\":3,\"rs690m\":1,\"rs740\":1,\"rs760\":1,\"rs780\":2,\"rs780d\":1,\"rs880\":2,\"rs880d\":1,\"rv100\":1,\"rv200\":1,\"rv250\":2,\"rv280\":2,\"rv350\":2,\"rv360\":2,\"rv370\":1,\"rv380\":1,\"rv410\":1,\"rv515\":2,\"rv530\":1,\"rv535\":1,\"rv570\":1,\"rv610\":6,\"rv620\":1,\"rv620 le\":1,\"rv620 pro\":1,\"rv630\":4,\"rv635\":1,\"rv635 pro\":1,\"rv670\":2,\"rv670 pro\":6,\"rv730\":2,\"rv740 pro\":1,\"rv770\":2,\"rv770 ce\":2,\"rv770 pro\":1,\"rv770 xt\":2,\"rv790 gt\":1,\"rv870\":3,\"saturn xt\":1,\"scrapper\":1,\"skylake gt1-u\":1,\"skylake gt3-e\":9,\"tahiti le\":1,\"tahiti pro\":1,\"tahiti xt\":1,\"tahiti xt gl\":1,\"terascale 2 blackcomb pro\":1,\"terascale 2 blackcomb xt\":1,\"terascale 2 blackcomb xtx\":1,\"terascale 2 broadway le\":1,\"terascale 2 broadway pro\":1,\"terascale 2 broadway xt\":1,\"terascale 2 broadway xt (x2)\":1,\"terascale 2 capilano le\":1,\"terascale 2 capilano pro\":1,\"terascale 2 capilano xt\":1,\"terascale 2 granville lp\":1,\"terascale 2 granville pro\":1,\"terascale 2 granville xt\":1,\"terascale 2 loveland\":3,\"terascale 2 madison le\":1,\"terascale 2 madison lp\":1,\"terascale 2 madison pro\":1,\"terascale 2 madison xt\":1,\"terascale 2 park lp\":1,\"terascale 2 park pro\":1,\"terascale 2 park xt\":1,\"terascale 2 robson le\":2,\"terascale 2 robson pro\":2,\"terascale 2 robson xt\":2,\"terascale 2 seymour le\":1,\"terascale 2 seymour pro\":3,\"terascale 2 seymour xt\":2,\"terascale 2 seymour xtx\":2,\"terascale 2 thames le\":2,\"terascale 2 thames lp\":2,\"terascale 2 thames pro\":7,\"terascale 2 thames xt\":4,\"terascale 2 thames xtx\":1,\"terascale 2 whistler le\":2,\"terascale 2 whistler lp\":1,\"terascale 2 whistler pro\":2,\"terascale 2 whistler xt\":2,\"terascale 3\":1,\"terrascale 2\":2,\"terrascale 3\":1,\"tesla g92b\":1,\"tesla g94b\":2,\"tesla g96b\":1,\"tesla g98\":1,\"tonga\":1,\"trinity\":1,\"turks\":1,\"venus xt\":1,\"winterpark\":2,\"zacate\":3}}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": false
+							}
+						},
+						"source": [
+							"column = 'Architecture'\n",
+							"base_gpu = df.withColumn(column, lower(col(column)))\n",
+							"\n",
+							"display(base_gpu)"
+						],
+						"outputs": [],
+						"execution_count": 3
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"base_gpu.write.format('delta').save(BASE_DELTALAKE_PATH)"
+						],
+						"outputs": [],
+						"execution_count": 11
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [],
+									"values": [],
+									"yLabel": "",
+									"xLabel": "",
+									"aggregation": "SUM",
+									"aggByBackend": false
+								},
+								"aggData": "{}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": true
+							}
+						},
+						"source": [
+							"%%sql\n",
+							"CREATE DATABASE delta;"
+						],
+						"outputs": [],
+						"execution_count": 4
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [],
+									"values": [],
+									"yLabel": "",
+									"xLabel": "",
+									"aggregation": "SUM",
+									"aggByBackend": false
+								},
+								"aggData": "{}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": true
+							}
+						},
+						"source": [
+							"%%sql\n",
+							"DROP TABLE IF EXISTS delta.gpu;"
+						],
+						"outputs": [],
+						"execution_count": 12
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [],
+									"values": [],
+									"yLabel": "",
+									"xLabel": "",
+									"aggregation": "SUM",
+									"aggByBackend": false
+								},
+								"aggData": "{}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": true
+							}
+						},
+						"source": [
+							"%%sql\n",
+							"\n",
+							"CREATE TABLE delta.gpu\n",
+							"USING DELTA\n",
+							"LOCATION 'abfss://lake@chrispstore.dfs.core.windows.net/BASE/gpu';\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 13
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"diagram": {
+								"activateDiagramType": 1,
+								"chartConfig": {
+									"category": "bar",
+									"keys": [
+										"Architecture"
+									],
+									"values": [
+										"Architecture"
+									],
+									"yLabel": "Architecture",
+									"xLabel": "Architecture",
+									"aggregation": "COUNT",
+									"aggByBackend": false
+								},
+								"aggData": "{\"Architecture\":{\"\":22,\"arrandale\":6,\"beavercreek\":2,\"broadwell gt3\":1,\"broadwell gt3-e\":6,\"cantiga\":2,\"cayman le gl\":1,\"cayman pro gl\":1,\"cypress xt\":1,\"evergreen juniper xt gl\":1,\"fermi gf100\":3,\"fermi gf110\":1,\"gcn\":1,\"gcn 1.0 ????\":1,\"gcn 1.0 chelsea le\":1,\"gcn 1.0 chelsea pro\":1,\"gcn 1.0 chelsea xt\":2,\"gcn 1.0 heathrow pro\":1,\"gcn 1.0 heathrow xt\":1,\"gcn 1.0 tahiti pro\":1,\"gcn 1.0 tahiti pro gl\":2,\"gcn 1.0 venus pro\":1,\"gcn 1.0 venus xtx\":2,\"gcn 1.0 wimbledon pro\":1,\"gcn 1.0 wimbledon xt\":1,\"gcn 1.0 wimbledon xt (x2)\":1,\"gcn 1.1 exo xt\":2,\"gcn 1.1 godavari-kv-a1\":1,\"gcn 1.1 jet pro\":1,\"gcn 1.1 jet xt\":1,\"gcn 1.1 kaveri-kv-a1\":1,\"gcn 1.1 mars le\":1,\"gcn 1.1 mars pro\":3,\"gcn 1.1 mars xt\":8,\"gcn 1.1 mars xtx\":1,\"gcn 1.1 meso pro\":1,\"gcn 1.1 neptune xt\":4,\"gcn 1.1 neptune xt (x2)\":2,\"gcn 1.1 oland pro\":1,\"gcn 1.1 oland xt + kaveri\":1,\"gcn 1.1 opal xt\":1,\"gcn 1.1 saturn pro\":2,\"gcn 1.1 saturn xt\":2,\"gcn 1.1 sun le\":1,\"gcn 1.1 sun pro\":4,\"gcn 1.1 topaz xt\":1,\"gcn 1.1 venus le\":1,\"gcn 1.1 venus pro\":3,\"gcn 1.1 venus xt\":2,\"gcn 1.1 venus xtx\":1,\"gcn 1.2 amethyst xt\":2,\"gcn 1.2 strato pro\":1,\"gcn 2.0 hawaii xt gl\":2,\"haswell gt3\":1,\"haswell gt3e\":1,\"jet le\":1,\"jet pro\":1,\"kabini\":2,\"kalindi\":4,\"kalindi lp\":3,\"kaveri\":3,\"kaveri spectre\":6,\"kepler gk104 x2\":1,\"kepler gk110\":3,\"kepler gk110-400-a1\":9,\"kepler gk110-400-a1 (x2)\":1,\"kepler gk110-430-b1\":1,\"kepler gk110-430-b1 (x2)\":2,\"kepler gk110b\":2,\"loveland\":1,\"m62\":1,\"m64\":1,\"m66\":1,\"m92\":4,\"m96\":3,\"m96 xt\":1,\"maxwell gm200-400-a1\":3,\"maxwell gm200-400-a1 (x2)\":2,\"montara-gm\":1,\"nv17 a3\":2,\"nv18 a4\":2,\"nv25 a2\":2,\"nv28\":1,\"nv28gl a2\":2,\"park xt\":1,\"pascal gp102\":2,\"pascal p100\":2,\"pitcairn le\":1,\"pitcairn xt\":2,\"pitcairn xt gl\":1,\"r200\":2,\"r300\":2,\"r360\":2,\"r520\":1,\"r600 gt\":1,\"r600 pro\":1,\"r600 rv670 xt\":2,\"r600 xt\":1,\"r700 rv710\":5,\"r700 rv730 pro\":2,\"r700 rv730 xt\":6,\"r700 rv730pro\":2,\"r700 rv740 pro\":1,\"r700 rv770 pro\":9,\"r700 rv790 le\":2,\"r700 rv790 xt\":6,\"r700 xt\":1,\"richland\":3,\"rs690m\":1,\"rs740\":1,\"rs760\":1,\"rs780\":2,\"rs780d\":1,\"rs880\":2,\"rs880d\":1,\"rv100\":1,\"rv200\":1,\"rv250\":2,\"rv280\":2,\"rv350\":2,\"rv360\":2,\"rv370\":1,\"rv380\":1,\"rv410\":1,\"rv515\":2,\"rv530\":1,\"rv535\":1,\"rv570\":1,\"rv610\":6,\"rv620\":1,\"rv620 le\":1,\"rv620 pro\":1,\"rv630\":4,\"rv635\":1,\"rv635 pro\":1,\"rv670\":2,\"rv670 pro\":6,\"rv730\":2,\"rv740 pro\":1,\"rv770\":2,\"rv770 ce\":2,\"rv770 pro\":1,\"rv770 xt\":2,\"rv790 gt\":1,\"rv870\":3,\"saturn xt\":1,\"scrapper\":1,\"skylake gt1-u\":1,\"skylake gt3-e\":9,\"tahiti le\":1,\"tahiti pro\":1,\"tahiti xt\":1,\"tahiti xt gl\":1,\"terascale 2 blackcomb pro\":1,\"terascale 2 blackcomb xt\":1,\"terascale 2 blackcomb xtx\":1,\"terascale 2 broadway le\":1,\"terascale 2 broadway pro\":1,\"terascale 2 broadway xt\":1,\"terascale 2 broadway xt (x2)\":1,\"terascale 2 capilano le\":1,\"terascale 2 capilano pro\":1,\"terascale 2 capilano xt\":1,\"terascale 2 granville lp\":1,\"terascale 2 granville pro\":1,\"terascale 2 granville xt\":1,\"terascale 2 loveland\":3,\"terascale 2 madison le\":1,\"terascale 2 madison lp\":1,\"terascale 2 madison pro\":1,\"terascale 2 madison xt\":1,\"terascale 2 park lp\":1,\"terascale 2 park pro\":1,\"terascale 2 park xt\":1,\"terascale 2 robson le\":2,\"terascale 2 robson pro\":2,\"terascale 2 robson xt\":2,\"terascale 2 seymour le\":1,\"terascale 2 seymour pro\":3,\"terascale 2 seymour xt\":2,\"terascale 2 seymour xtx\":2,\"terascale 2 thames le\":2,\"terascale 2 thames lp\":2,\"terascale 2 thames pro\":7,\"terascale 2 thames xt\":4,\"terascale 2 thames xtx\":1,\"terascale 2 whistler le\":2,\"terascale 2 whistler lp\":1,\"terascale 2 whistler pro\":2,\"terascale 2 whistler xt\":2,\"terascale 3\":1,\"terrascale 2\":2,\"terrascale 3\":1,\"tesla g92b\":1,\"tesla g94b\":2,\"tesla g96b\":1,\"tesla g98\":1,\"tonga\":1,\"trinity\":1,\"turks\":1,\"venus xt\":1,\"winterpark\":2,\"zacate\":3}}",
+								"isSummary": false,
+								"previewData": {
+									"filter": null
+								},
+								"isSql": true
+							}
+						},
+						"source": [
+							"%%sql\n",
+							"\n",
+							"SELECT * FROM delta.gpu"
+						],
+						"outputs": [],
+						"execution_count": 14
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/RawToBase')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "RawToBase",
+						"type": "SynapseNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebook": {
+								"referenceName": "RawToBase",
+								"type": "NotebookReference"
+							},
+							"parameters": {
+								"date_partition": {
+									"value": "test",
+									"type": "string"
+								}
+							},
+							"snapshot": true
+						}
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/notebooks/RawToBase')]"
+			]
+		}
+	]
+}
