@@ -12,11 +12,11 @@
 			"driverCores": 4,
 			"executorMemory": "28g",
 			"executorCores": 4,
-			"numExecutors": 2,
+			"numExecutors": 1,
 			"conf": {
 				"spark.dynamicAllocation.enabled": "false",
-				"spark.dynamicAllocation.minExecutors": "2",
-				"spark.dynamicAllocation.maxExecutors": "2"
+				"spark.dynamicAllocation.minExecutors": "1",
+				"spark.dynamicAllocation.maxExecutors": "1"
 			}
 		},
 		"metadata": {
@@ -82,7 +82,50 @@
 					"\r\n",
 					"# TODO: Make query"
 				],
-				"execution_count": 2
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# TODO: Paremeterize config ----\r\n",
+					"\r\n",
+					"store_backend_defaults = InMemoryStoreBackendDefaults()\r\n",
+					"data_context_config = DataContextConfig(\r\n",
+					"    store_backend_defaults=store_backend_defaults,\r\n",
+					"    checkpoint_store_name=store_backend_defaults.checkpoint_store_name,\r\n",
+					")\r\n",
+					"context = BaseDataContext(project_config=data_context_config)\r\n",
+					"\r\n",
+					"datasource_config = {\r\n",
+					"    \"name\": \"my_spark_dataframe\",\r\n",
+					"    \"class_name\": \"Datasource\",\r\n",
+					"    \"execution_engine\": {\"class_name\": \"SparkDFExecutionEngine\"},\r\n",
+					"    \"data_connectors\": {\r\n",
+					"        \"default_runtime_data_connector_name\": {\r\n",
+					"            \"class_name\": \"RuntimeDataConnector\",\r\n",
+					"            \"batch_identifiers\": [\"batch_id\"],\r\n",
+					"        }\r\n",
+					"    },\r\n",
+					"}\r\n",
+					"\r\n",
+					"# ------------\r\n",
+					"\r\n",
+					"context.test_yaml_config(yaml.dump(datasource_config))\r\n",
+					"\r\n",
+					"context.add_datasource(**datasource_config)"
+				],
+				"execution_count": null
 			}
 		]
 	}
