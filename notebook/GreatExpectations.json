@@ -80,7 +80,8 @@
 					"]\r\n",
 					"df = spark.createDataFrame(data)\r\n",
 					"\r\n",
-					"# TODO: Make query"
+					"# TODO: Make query\r\n",
+					"df_query = df"
 				],
 				"execution_count": 1
 			},
@@ -124,6 +125,57 @@
 					"context.test_yaml_config(yaml.dump(datasource_config))\r\n",
 					"\r\n",
 					"context.add_datasource(**datasource_config)"
+				],
+				"execution_count": 2
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Here is a RuntimeBatchRequest using a dataframe\r\n",
+					"batch_request = RuntimeBatchRequest(\r\n",
+					"    datasource_name=\"my_spark_dataframe\",\r\n",
+					"    data_connector_name=\"default_runtime_data_connector_name\",\r\n",
+					"    data_asset_name=\"<YOUR_MEANGINGFUL_NAME>\",  # This can be anything that identifies this data_asset for you\r\n",
+					"    batch_identifiers={\"batch_id\": \"default_identifier\"},\r\n",
+					"    runtime_parameters={\"batch_data\": df_query},  # Your dataframe goes here\r\n",
+					")"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# TODO: load suite\r\n",
+					"\r\n",
+					"context.create_expectation_suite(\r\n",
+					"    expectation_suite_name=\"test_suite\", overwrite_existing=True\r\n",
+					")\r\n",
+					"\r\n",
+					"validator = context.get_validator(\r\n",
+					"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\r\n",
+					")"
 				],
 				"execution_count": null
 			}
