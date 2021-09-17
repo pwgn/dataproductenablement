@@ -40,7 +40,8 @@
 				"sparkVersion": "3.1",
 				"nodeCount": 3,
 				"cores": 4,
-				"memory": 28
+				"memory": 28,
+				"automaticScaleJobs": false
 			},
 			"sessionKeepAliveTimeout": 30
 		},
@@ -83,7 +84,7 @@
 					"# TODO: Make query\r\n",
 					"df_query = df"
 				],
-				"execution_count": 1
+				"execution_count": 2
 			},
 			{
 				"cell_type": "code",
@@ -99,34 +100,34 @@
 					}
 				},
 				"source": [
-					"# TODO: Paremeterize config ----\r\n",
-					"\r\n",
-					"store_backend_defaults = InMemoryStoreBackendDefaults()\r\n",
-					"data_context_config = DataContextConfig(\r\n",
-					"    store_backend_defaults=store_backend_defaults,\r\n",
-					"    checkpoint_store_name=store_backend_defaults.checkpoint_store_name,\r\n",
-					")\r\n",
-					"context = BaseDataContext(project_config=data_context_config)\r\n",
-					"\r\n",
-					"datasource_config = {\r\n",
-					"    \"name\": \"my_spark_dataframe\",\r\n",
-					"    \"class_name\": \"Datasource\",\r\n",
-					"    \"execution_engine\": {\"class_name\": \"SparkDFExecutionEngine\"},\r\n",
-					"    \"data_connectors\": {\r\n",
-					"        \"default_runtime_data_connector_name\": {\r\n",
-					"            \"class_name\": \"RuntimeDataConnector\",\r\n",
-					"            \"batch_identifiers\": [\"batch_id\"],\r\n",
-					"        }\r\n",
-					"    },\r\n",
-					"}\r\n",
-					"\r\n",
-					"# ------------\r\n",
-					"\r\n",
-					"context.test_yaml_config(yaml.dump(datasource_config))\r\n",
-					"\r\n",
-					"context.add_datasource(**datasource_config)"
+					"# TODO: Paremeterize config ----\n",
+					"import yaml\n",
+					"\n",
+					"store_backend_defaults = InMemoryStoreBackendDefaults()\n",
+					"data_context_config = DataContextConfig(\n",
+					"    store_backend_defaults=store_backend_defaults,\n",
+					"    checkpoint_store_name=store_backend_defaults.checkpoint_store_name,\n",
+					")\n",
+					"context = BaseDataContext(project_config=data_context_config)\n",
+					"\n",
+					"datasource_yaml = f\"\"\"\n",
+					"name: my_spark_dataframe\n",
+					"class_name: Datasource\n",
+					"execution_engine:\n",
+					"    class_name: SparkDFExecutionEngine\n",
+					"data_connectors:\n",
+					"    default_runtime_data_connector_name:\n",
+					"        class_name: RuntimeDataConnector\n",
+					"        batch_identifiers:\n",
+					"            - batch_id\n",
+					"\"\"\"\n",
+					"# ------------\n",
+					"\n",
+					"context.test_yaml_config(datasource_yaml)\n",
+					"\n",
+					"#context.add_datasource(**yaml.load(datasource_yaml))"
 				],
-				"execution_count": 2
+				"execution_count": 17
 			},
 			{
 				"cell_type": "code",
@@ -176,6 +177,13 @@
 					"validator = context.get_validator(\r\n",
 					"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\r\n",
 					")"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# TODO: checkpoints"
 				],
 				"execution_count": null
 			}
