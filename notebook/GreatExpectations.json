@@ -49,15 +49,51 @@
 			{
 				"cell_type": "code",
 				"source": [
-					"import great_expectations as ge\r\n",
-					"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\r\n",
-					"from great_expectations.data_context import BaseDataContext\r\n",
-					"from great_expectations.data_context.types.base import (\r\n",
-					"    DataContextConfig,\r\n",
-					"    InMemoryStoreBackendDefaults,\r\n",
+					"import great_expectations as ge\n",
+					"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
+					"from great_expectations.data_context import BaseDataContext\n",
+					"from great_expectations.data_context.types.base import (\n",
+					"    InMemoryStoreBackendDefaults,\n",
+					"    DataContextConfig, \n",
+					"    DatasourceConfig, \n",
+					"    FilesystemStoreBackendDefaults\n",
 					")"
 				],
-				"execution_count": 1
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Example RuntimeDataConnector for use with a dataframe batch\n",
+					"my_spark_datasource_config = DatasourceConfig(\n",
+					"    class_name=\"Datasource\",\n",
+					"    execution_engine={\"class_name\": \"SparkDFExecutionEngine\"},\n",
+					"    data_connectors={\n",
+					"        \"insert_your_runtime_data_connector_name_here\": {\n",
+					"            \"module_name\": \"great_expectations.datasource.data_connector\",\n",
+					"            \"class_name\": \"RuntimeDataConnector\",\n",
+					"            \"batch_identifiers\": [\n",
+					"                \"some_key_maybe_pipeline_stage\",\n",
+					"                \"some_other_key_maybe_run_id\"\n",
+					"            ]\n",
+					"        }\n",
+					"    }\n",
+					")\n",
+					"\n",
+					"data_context_config = DataContextConfig(\n",
+					"    datasources={\"my_spark_datasource\": my_spark_datasource_config},\n",
+					"    store_backend_defaults=FilesystemStoreBackendDefaults(root_directory=\"/tmp/GreatExpectations/\"),\n",
+					")\n",
+					"context = BaseDataContext(project_config=data_context_config)"
+				],
+				"execution_count": 20
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					""
+				],
+				"execution_count": 22
 			},
 			{
 				"cell_type": "code",
@@ -73,18 +109,13 @@
 					}
 				},
 				"source": [
-					"# TODO: Load linked source \r\n",
-					"data = [\r\n",
-					"    {\"a\": 1, \"b\": 2, \"c\": 3},\r\n",
-					"    {\"a\": 4, \"b\": 5, \"c\": 6},\r\n",
-					"    {\"a\": 7, \"b\": 8, \"c\": 9},\r\n",
-					"]\r\n",
-					"df = spark.createDataFrame(data)\r\n",
-					"\r\n",
-					"# TODO: Make query\r\n",
-					"df_query = df"
+					"# TODO: Load linked source \n",
+					"#date_partition = 'year=2021/month=09/day=01'\n",
+					"#RAW_PARQUET_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/{partition}/*.parquet'.format(partition = date_partition)\n",
+					"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
+					""
 				],
-				"execution_count": 2
+				"execution_count": 30
 			},
 			{
 				"cell_type": "code",
@@ -116,6 +147,7 @@
 					"execution_engine:\n",
 					"    class_name: SparkDFExecutionEngine\n",
 					"data_connectors:\n",
+					"    module_name: great_expectations.datasource.data_connector\n",
 					"    default_runtime_data_connector_name:\n",
 					"        class_name: RuntimeDataConnector\n",
 					"        batch_identifiers:\n",
@@ -127,7 +159,7 @@
 					"\n",
 					"#context.add_datasource(**yaml.load(datasource_yaml))"
 				],
-				"execution_count": 17
+				"execution_count": 15
 			},
 			{
 				"cell_type": "code",
@@ -143,16 +175,16 @@
 					}
 				},
 				"source": [
-					"# Here is a RuntimeBatchRequest using a dataframe\r\n",
-					"batch_request = RuntimeBatchRequest(\r\n",
-					"    datasource_name=\"my_spark_dataframe\",\r\n",
-					"    data_connector_name=\"default_runtime_data_connector_name\",\r\n",
-					"    data_asset_name=\"<YOUR_MEANGINGFUL_NAME>\",  # This can be anything that identifies this data_asset for you\r\n",
-					"    batch_identifiers={\"batch_id\": \"default_identifier\"},\r\n",
-					"    runtime_parameters={\"batch_data\": df_query},  # Your dataframe goes here\r\n",
+					"# Here is a RuntimeBatchRequest using a dataframe\n",
+					"batch_request = RuntimeBatchRequest(\n",
+					"    datasource_name=\"my_spark_datasource\",\n",
+					"    data_connector_name=\"default_runtime_data_connector_name\",\n",
+					"    data_asset_name=\"<YOUR_MEANGINGFUL_NAME>\",  # This can be anything that identifies this data_asset for you\n",
+					"    batch_identifiers={\"batch_id\": \"default_identifier\"},\n",
+					"    runtime_parameters={\"batch_data\": df_query},  # Your dataframe goes here\n",
 					")"
 				],
-				"execution_count": null
+				"execution_count": 18
 			},
 			{
 				"cell_type": "code",
@@ -178,7 +210,7 @@
 					"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\r\n",
 					")"
 				],
-				"execution_count": null
+				"execution_count": 19
 			},
 			{
 				"cell_type": "code",
