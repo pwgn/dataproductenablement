@@ -59,7 +59,7 @@
 					"    FilesystemStoreBackendDefaults\n",
 					")"
 				],
-				"execution_count": 11
+				"execution_count": 31
 			},
 			{
 				"cell_type": "code",
@@ -86,14 +86,14 @@
 					")\n",
 					"context = BaseDataContext(project_config=data_context_config)"
 				],
-				"execution_count": 20
+				"execution_count": 32
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					""
 				],
-				"execution_count": 22
+				"execution_count": 33
 			},
 			{
 				"cell_type": "code",
@@ -115,7 +115,7 @@
 					"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
 					""
 				],
-				"execution_count": 30
+				"execution_count": 34
 			},
 			{
 				"cell_type": "code",
@@ -159,7 +159,7 @@
 					"\n",
 					"#context.add_datasource(**yaml.load(datasource_yaml))"
 				],
-				"execution_count": 15
+				"execution_count": 35
 			},
 			{
 				"cell_type": "code",
@@ -184,7 +184,7 @@
 					"    runtime_parameters={\"batch_data\": df_query},  # Your dataframe goes here\n",
 					")"
 				],
-				"execution_count": 18
+				"execution_count": 36
 			},
 			{
 				"cell_type": "code",
@@ -210,14 +210,14 @@
 					"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\r\n",
 					")"
 				],
-				"execution_count": 19
+				"execution_count": 37
 			},
 			{
 				"cell_type": "code",
 				"source": [
 					"# TODO: checkpoints"
 				],
-				"execution_count": null
+				"execution_count": 38
 			}
 		]
 	}
