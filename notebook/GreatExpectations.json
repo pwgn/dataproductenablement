@@ -223,22 +223,23 @@
 				"cell_type": "code",
 				"source": [
 					"%%pyspark\n",
+					"\n",
+					"# GG\n",
+					"## TODO: Parametirize load source\n",
+					"## how to support snowflake / other source types\n",
 					"from pyspark.sql import SparkSession\n",
 					"\n",
 					"spark = SparkSession.builder \\\n",
 					"    .getOrCreate()\n",
-					"data = [\n",
-					"    {\"a\": 1, \"b\": 2, \"c\": 3},\n",
-					"    {\"a\": 4, \"b\": 5, \"c\": 6},\n",
-					"    {\"a\": 7, \"b\": 8, \"c\": 9},\n",
-					"    {\"b\": 8, \"c\": 9},\n",
-					"]\n",
-					"df = spark.createDataFrame(data)\n",
+					"\n",
+					"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
 					"df._sc = spark._sc\n",
+					"\n",
+					"## TODO: add query - query put in batch config somehow!?\n",
 					"\n",
 					"df.show()"
 				],
-				"execution_count": 31
+				"execution_count": 35
 			},
 			{
 				"cell_type": "code",
@@ -251,13 +252,6 @@
 					"  FilesystemStoreBackendDefaults\n",
 					")\n",
 					"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
-					"\n",
-					"# Load your data into a dataframe\n",
-					"# TODO: Parameterize with linked service\n",
-					"\n",
-					"\n",
-					"\n",
-					"\n",
 					""
 				],
 				"execution_count": 19
@@ -267,7 +261,7 @@
 				"source": [
 					"%%pyspark\n",
 					"# Create a DataContext in code from a DataContextConfig with DatasourceConfig\n",
-					"# TODO: Parameterize ?\n",
+					"# TODO: Parameterize what? Connector?\n",
 					"my_spark_datasource_config = DatasourceConfig(\n",
 					"    class_name=\"Datasource\",\n",
 					"    execution_engine={\"class_name\": \"SparkDFExecutionEngine\"},\n",
@@ -322,6 +316,8 @@
 					"# Create or load your Expectation Suite\n",
 					"# NOTE: You should either create or load, this try/except block is for convenience\n",
 					"# TODO: Parametirize SUITE\n",
+					"# TODO: Validation actions \n",
+					"# TODO: custom validators?\n",
 					"from great_expectations.exceptions import DataContextError\n",
 					"try:\n",
 					"  suite = context.create_expectation_suite(\"insert_your_suite_name_here\")\n",
@@ -351,7 +347,10 @@
 					"\n",
 					"# Save the Expectation Suite to the Expectation Store\n",
 					"\n",
-					"#my_validator.save_expectation_suite(discard_failed_expectations=False)"
+					"#my_validator.save_expectation_suite(discard_failed_expectations=False)\n",
+					"\n",
+					"# TODO: store result to ADLSgen2\n",
+					"# TODO: Checkpoints? https://docs.greatexpectations.io/docs/reference/checkpoints_and_actions"
 				],
 				"execution_count": 34
 			}
