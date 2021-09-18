@@ -218,6 +218,142 @@
 					"# TODO: checkpoints"
 				],
 				"execution_count": 38
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"from pyspark.sql import SparkSession\n",
+					"\n",
+					"spark = SparkSession.builder \\\n",
+					"    .getOrCreate()\n",
+					"data = [\n",
+					"    {\"a\": 1, \"b\": 2, \"c\": 3},\n",
+					"    {\"a\": 4, \"b\": 5, \"c\": 6},\n",
+					"    {\"a\": 7, \"b\": 8, \"c\": 9},\n",
+					"    {\"b\": 8, \"c\": 9},\n",
+					"]\n",
+					"df = spark.createDataFrame(data)\n",
+					"df._sc = spark._sc\n",
+					"\n",
+					"df.show()"
+				],
+				"execution_count": 31
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from great_expectations.data_context import BaseDataContext\n",
+					"from great_expectations.data_context.types.base import (\n",
+					"  DatasourceConfig,\n",
+					"  DataContextConfig,\n",
+					"  InMemoryStoreBackendDefaults,\n",
+					"  FilesystemStoreBackendDefaults\n",
+					")\n",
+					"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
+					"\n",
+					"# Load your data into a dataframe\n",
+					"# TODO: Parameterize with linked service\n",
+					"\n",
+					"\n",
+					"\n",
+					"\n",
+					""
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"# Create a DataContext in code from a DataContextConfig with DatasourceConfig\n",
+					"# TODO: Parameterize ?\n",
+					"my_spark_datasource_config = DatasourceConfig(\n",
+					"    class_name=\"Datasource\",\n",
+					"    execution_engine={\"class_name\": \"SparkDFExecutionEngine\"},\n",
+					"    data_connectors={\n",
+					"      \"insert_your_runtime_data_connector_name_here\": {\n",
+					"        \"module_name\": \"great_expectations.datasource.data_connector\",\n",
+					"        \"class_name\": \"RuntimeDataConnector\",\n",
+					"        \"batch_identifiers\": [\n",
+					"          \"batch_id\"\n",
+					"        ]\n",
+					"      }\n",
+					"    }\n",
+					"  )\n",
+					"\n",
+					"\n",
+					"# TODO: Parameterize source name\n",
+					"project_config = DataContextConfig(\n",
+					"    datasources={\"insert_your_datasource_name_here\": my_spark_datasource_config},\n",
+					"    store_backend_defaults=InMemoryStoreBackendDefaults()\n",
+					")\n",
+					"\n",
+					"context = BaseDataContext(project_config=project_config)\n",
+					"\n",
+					""
+				],
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"# Create a RuntimeBatchRequest\n",
+					"# TODO: Parametireze \n",
+					"\n",
+					"batch_request = RuntimeBatchRequest(\n",
+					"    datasource_name=\"insert_your_datasource_name_here\",\n",
+					"    data_connector_name=\"insert_your_runtime_data_connector_name_here\",\n",
+					"    data_asset_name=\"insert_your_data_asset_name_here\",\n",
+					"    runtime_parameters={\n",
+					"      \"batch_data\": df\n",
+					"    },\n",
+					"    batch_identifiers={\"batch_id\": \"default_identifier\"}\n",
+					")\n",
+					""
+				],
+				"execution_count": 32
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"# Create or load your Expectation Suite\n",
+					"# NOTE: You should either create or load, this try/except block is for convenience\n",
+					"# TODO: Parametirize SUITE\n",
+					"from great_expectations.exceptions import DataContextError\n",
+					"try:\n",
+					"  suite = context.create_expectation_suite(\"insert_your_suite_name_here\")\n",
+					"except DataContextError:\n",
+					"  suite = context.get_expectation_suite(\"insert_your_suite_name_here\")\n",
+					"\n",
+					"# Get a Validator\n",
+					"\n",
+					"my_validator = context.get_validator(\n",
+					"    batch_request=batch_request,\n",
+					"    expectation_suite=suite\n",
+					")\n",
+					"\n",
+					""
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"%%pyspark\n",
+					"\n",
+					"# Add Expectations\n",
+					"\n",
+					"my_validator.expect_table_row_count_to_equal(4)\n",
+					"my_validator.expect_column_values_to_not_be_null(\"a\")\n",
+					"\n",
+					"# Save the Expectation Suite to the Expectation Store\n",
+					"\n",
+					"#my_validator.save_expectation_suite(discard_failed_expectations=False)"
+				],
+				"execution_count": 34
 			}
 		]
 	}
