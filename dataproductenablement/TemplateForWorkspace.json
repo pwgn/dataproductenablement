@@ -107,6 +107,10 @@
 						]
 					}
 				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
 				"parameters": {
 					"windowStart": {
 						"type": "String"
@@ -120,6 +124,49 @@
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/datasets/SourceGpu')]",
 				"[concat(variables('workspaceId'), '/datasets/RawGpuParquet')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/RawToBase')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "RawToBase",
+						"type": "SynapseNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebook": {
+								"referenceName": "RawToBase",
+								"type": "NotebookReference"
+							},
+							"parameters": {
+								"date_partition": {
+									"value": "test",
+									"type": "string"
+								}
+							},
+							"snapshot": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/notebooks/RawToBase')]"
 			]
 		},
 		{
@@ -415,6 +462,458 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/GreatExpectations')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "DataProduct",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 1,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "1",
+						"spark.dynamicAllocation.maxExecutors": "1"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/c81cc72a-af55-4e1e-9ceb-7e3c58388c5d/resourceGroups/data-product-enablement/providers/Microsoft.Synapse/workspaces/dataproductenablement/bigDataPools/DataProduct",
+						"name": "DataProduct",
+						"type": "Spark",
+						"endpoint": "https://dataproductenablement.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/DataProduct",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 3,
+						"cores": 4,
+						"memory": 28,
+						"extraHeader": {},
+						"automaticScaleJobs": false
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"import great_expectations as ge\n",
+							"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
+							"from great_expectations.data_context import BaseDataContext\n",
+							"from great_expectations.data_context.types.base import (\n",
+							"    InMemoryStoreBackendDefaults,\n",
+							"    DataContextConfig, \n",
+							"    DatasourceConfig, \n",
+							"    FilesystemStoreBackendDefaults\n",
+							")"
+						],
+						"outputs": [],
+						"execution_count": 1
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"# Example RuntimeDataConnector for use with a dataframe batch\n",
+							"my_spark_datasource_config = DatasourceConfig(\n",
+							"    class_name=\"Datasource\",\n",
+							"    execution_engine={\n",
+							"        \"class_name\": \"SparkDFExecutionEngine\"\n",
+							"        \"azure_options\": {\n",
+							"            \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+							"            \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+							"        },\n",
+							"    },\n",
+							"    data_connectors={\n",
+							"        \"default_inferred_data_connector_name\": {\n",
+							"            \"class_name\": \"InferredAssetAzureDataConnector\",\n",
+							"            \"azure_options\": {\n",
+							"                \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+							"                \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+							"            },\n",
+							"            \"container\": \"lake\",\n",
+							"            \"name_starts_with\": \"RAW\",\n",
+							"            \"default_regex\": {\n",
+							"                \"pattern\": \"(.*)\\\\.parquet\",\n",
+							"                \"group_names\": [\"data_asset_name\"],\n",
+							"            },\n",
+							"        },\n",
+							"    }\n",
+							")\n",
+							"\n",
+							"data_context_config = DataContextConfig(\n",
+							"    datasources={\"my_spark_datasource\": my_spark_datasource_config},\n",
+							"    store_backend_defaults=FilesystemStoreBackendDefaults(root_directory=\"/tmp/GreatExpectations/\"),\n",
+							")\n",
+							"context = BaseDataContext(project_config=data_context_config)\n",
+							""
+						],
+						"attachments": {},
+						"outputs": [],
+						"execution_count": 3
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"context.add_datasource(**datasource_config)\n",
+							"batch_request = BatchRequest(\n",
+							"    datasource_name=\"my_azure_datasource\",\n",
+							"    data_connector_name=\"default_inferred_data_connector_name\",\n",
+							"    data_asset_name=\"GpuRaw\",\n",
+							"    batch_spec_passthrough={\"reader_method\": \"parquet\", \"reader_options\": {\"header\": True}},\n",
+							")\n",
+							"\n",
+							"context.create_expectation_suite(\n",
+							"    expectation_suite_name=\"test_suite\", overwrite_existing=True\n",
+							")\n",
+							"validator = context.get_validator(\n",
+							"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\n",
+							")"
+						],
+						"attachments": {},
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"# Example RuntimeDataConnector for use with a dataframe batch\n",
+							"my_spark_datasource_config = DatasourceConfig(\n",
+							"    class_name=\"Datasource\",\n",
+							"    execution_engine={\"class_name\": \"SparkDFExecutionEngine\"},\n",
+							"    data_connectors={\n",
+							"        \"insert_your_runtime_data_connector_name_here\": {\n",
+							"            \"module_name\": \"great_expectations.datasource.data_connector\",\n",
+							"            \"class_name\": \"RuntimeDataConnector\",\n",
+							"            \"batch_identifiers\": [\n",
+							"                \"some_key_maybe_pipeline_stage\",\n",
+							"                \"some_other_key_maybe_run_id\"\n",
+							"            ]\n",
+							"        }\n",
+							"    }\n",
+							")\n",
+							"\n",
+							"data_context_config = DataContextConfig(\n",
+							"    datasources={\"my_spark_datasource\": my_spark_datasource_config},\n",
+							"    store_backend_defaults=FilesystemStoreBackendDefaults(root_directory=\"/tmp/GreatExpectations/\"),\n",
+							")\n",
+							"context = BaseDataContext(project_config=data_context_config)"
+						],
+						"outputs": [],
+						"execution_count": 32
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							""
+						],
+						"outputs": [],
+						"execution_count": 33
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# TODO: Load linked source \n",
+							"#date_partition = 'year=2021/month=09/day=01'\n",
+							"#RAW_PARQUET_PATH = 'abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/{partition}/*.parquet'.format(partition = date_partition)\n",
+							"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 34
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# TODO: Paremeterize config ----\n",
+							"import yaml\n",
+							"\n",
+							"store_backend_defaults = InMemoryStoreBackendDefaults()\n",
+							"data_context_config = DataContextConfig(\n",
+							"    store_backend_defaults=store_backend_defaults,\n",
+							"    checkpoint_store_name=store_backend_defaults.checkpoint_store_name,\n",
+							")\n",
+							"context = BaseDataContext(project_config=data_context_config)\n",
+							"\n",
+							"datasource_yaml = f\"\"\"\n",
+							"name: my_spark_dataframe\n",
+							"class_name: Datasource\n",
+							"execution_engine:\n",
+							"    class_name: SparkDFExecutionEngine\n",
+							"data_connectors:\n",
+							"    module_name: great_expectations.datasource.data_connector\n",
+							"    default_runtime_data_connector_name:\n",
+							"        class_name: RuntimeDataConnector\n",
+							"        batch_identifiers:\n",
+							"            - batch_id\n",
+							"\"\"\"\n",
+							"# ------------\n",
+							"\n",
+							"context.test_yaml_config(datasource_yaml)\n",
+							"\n",
+							"#context.add_datasource(**yaml.load(datasource_yaml))"
+						],
+						"outputs": [],
+						"execution_count": 35
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# Here is a RuntimeBatchRequest using a dataframe\n",
+							"batch_request = RuntimeBatchRequest(\n",
+							"    datasource_name=\"my_spark_datasource\",\n",
+							"    data_connector_name=\"default_runtime_data_connector_name\",\n",
+							"    data_asset_name=\"<YOUR_MEANGINGFUL_NAME>\",  # This can be anything that identifies this data_asset for you\n",
+							"    batch_identifiers={\"batch_id\": \"default_identifier\"},\n",
+							"    runtime_parameters={\"batch_data\": df_query},  # Your dataframe goes here\n",
+							")"
+						],
+						"outputs": [],
+						"execution_count": 36
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"# TODO: load suite\r\n",
+							"\r\n",
+							"context.create_expectation_suite(\r\n",
+							"    expectation_suite_name=\"test_suite\", overwrite_existing=True\r\n",
+							")\r\n",
+							"\r\n",
+							"validator = context.get_validator(\r\n",
+							"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\r\n",
+							")"
+						],
+						"outputs": [],
+						"execution_count": 37
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"# TODO: checkpoints"
+						],
+						"outputs": [],
+						"execution_count": 38
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"\n",
+							"# GG\n",
+							"## TODO: Parametirize load source\n",
+							"## how to support snowflake / other source types\n",
+							"from pyspark.sql import SparkSession\n",
+							"\n",
+							"spark = SparkSession.builder \\\n",
+							"    .getOrCreate()\n",
+							"\n",
+							"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
+							"df._sc = spark._sc\n",
+							"\n",
+							"## TODO: add query - query put in batch config somehow!?\n",
+							"\n",
+							"df.show()"
+						],
+						"outputs": [],
+						"execution_count": 35
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"from great_expectations.data_context import BaseDataContext\n",
+							"from great_expectations.data_context.types.base import (\n",
+							"  DatasourceConfig,\n",
+							"  DataContextConfig,\n",
+							"  InMemoryStoreBackendDefaults,\n",
+							"  FilesystemStoreBackendDefaults\n",
+							")\n",
+							"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 19
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create a DataContext in code from a DataContextConfig with DatasourceConfig\n",
+							"# TODO: Parameterize what? Connector?\n",
+							"my_spark_datasource_config = DatasourceConfig(\n",
+							"    class_name=\"Datasource\",\n",
+							"    execution_engine={\"class_name\": \"SparkDFExecutionEngine\"},\n",
+							"    data_connectors={\n",
+							"      \"insert_your_runtime_data_connector_name_here\": {\n",
+							"        \"module_name\": \"great_expectations.datasource.data_connector\",\n",
+							"        \"class_name\": \"RuntimeDataConnector\",\n",
+							"        \"batch_identifiers\": [\n",
+							"          \"batch_id\"\n",
+							"        ]\n",
+							"      }\n",
+							"    }\n",
+							"  )\n",
+							"\n",
+							"\n",
+							"# TODO: Parameterize source name\n",
+							"project_config = DataContextConfig(\n",
+							"    datasources={\"insert_your_datasource_name_here\": my_spark_datasource_config},\n",
+							"    store_backend_defaults=InMemoryStoreBackendDefaults()\n",
+							")\n",
+							"\n",
+							"context = BaseDataContext(project_config=project_config)\n",
+							"\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 22
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create a RuntimeBatchRequest\n",
+							"# TODO: Parametireze \n",
+							"\n",
+							"batch_request = RuntimeBatchRequest(\n",
+							"    datasource_name=\"insert_your_datasource_name_here\",\n",
+							"    data_connector_name=\"insert_your_runtime_data_connector_name_here\",\n",
+							"    data_asset_name=\"insert_your_data_asset_name_here\",\n",
+							"    runtime_parameters={\n",
+							"      \"batch_data\": df\n",
+							"    },\n",
+							"    batch_identifiers={\"batch_id\": \"default_identifier\"}\n",
+							")\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 32
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create or load your Expectation Suite\n",
+							"# NOTE: You should either create or load, this try/except block is for convenience\n",
+							"# TODO: Parametirize SUITE\n",
+							"# TODO: Validation actions \n",
+							"# TODO: custom validators?\n",
+							"from great_expectations.exceptions import DataContextError\n",
+							"try:\n",
+							"  suite = context.create_expectation_suite(\"insert_your_suite_name_here\")\n",
+							"except DataContextError:\n",
+							"  suite = context.get_expectation_suite(\"insert_your_suite_name_here\")\n",
+							"\n",
+							"# Get a Validator\n",
+							"\n",
+							"my_validator = context.get_validator(\n",
+							"    batch_request=batch_request,\n",
+							"    expectation_suite=suite\n",
+							")\n",
+							"\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 33
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"\n",
+							"# Add Expectations\n",
+							"\n",
+							"my_validator.expect_table_row_count_to_equal(4)\n",
+							"my_validator.expect_column_values_to_not_be_null(\"a\")\n",
+							"\n",
+							"# Save the Expectation Suite to the Expectation Store\n",
+							"\n",
+							"#my_validator.save_expectation_suite(discard_failed_expectations=False)\n",
+							"\n",
+							"# TODO: store result to ADLSgen2\n",
+							"# TODO: Checkpoints? https://docs.greatexpectations.io/docs/reference/checkpoints_and_actions"
+						],
+						"outputs": [],
+						"execution_count": 34
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/RawToBase')]",
 			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
@@ -455,6 +954,7 @@
 						"nodeCount": 3,
 						"cores": 4,
 						"memory": 28,
+						"extraHeader": {},
 						"automaticScaleJobs": false
 					},
 					"sessionKeepAliveTimeout": 30
@@ -473,9 +973,8 @@
 							"\n",
 							"date_partition = datetime.now().strftime('year=%YY/month=%m/day=%d')\n",
 							"\n",
-							"print(date_partition)"
+							"print('date_partition:', date_partition)"
 						],
-						"attachments": {},
 						"outputs": [],
 						"execution_count": 8
 					},
@@ -700,43 +1199,255 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/RawToBase')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"name": "[concat(parameters('workspaceName'), '/GreatExpectations_Azure')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
 			"apiVersion": "2019-06-01-preview",
 			"properties": {
-				"activities": [
-					{
-						"name": "RawToBase",
-						"type": "SynapseNotebook",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "7.00:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"notebook": {
-								"referenceName": "RawToBase",
-								"type": "NotebookReference"
-							},
-							"parameters": {
-								"date_partition": {
-									"value": "test",
-									"type": "string"
-								}
-							},
-							"snapshot": true
-						}
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "DataProduct",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 1,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "1",
+						"spark.dynamicAllocation.maxExecutors": "1"
 					}
-				],
-				"annotations": []
+				},
+				"metadata": {
+					"saveOutput": true,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/c81cc72a-af55-4e1e-9ceb-7e3c58388c5d/resourceGroups/data-product-enablement/providers/Microsoft.Synapse/workspaces/dataproductenablement/bigDataPools/DataProduct",
+						"name": "DataProduct",
+						"type": "Spark",
+						"endpoint": "https://dataproductenablement.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/DataProduct",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 3,
+						"cores": 4,
+						"memory": 28,
+						"automaticScaleJobs": false
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"\n",
+							"# GG\n",
+							"## TODO: Parametirize load source\n",
+							"## how to support snowflake / other source types\n",
+							"from pyspark.sql import SparkSession\n",
+							"\n",
+							"spark = SparkSession.builder \\\n",
+							"    .getOrCreate()\n",
+							"\n",
+							"df = spark.read.parquet('abfss://lake@chrispstore.dfs.core.windows.net/RAW/gpu/year=2021/month=09/day=01/All_GPUs - All_GPUs.parquet')\n",
+							"df._sc = spark._sc\n",
+							"\n",
+							"## TODO: add query - query put in batch config somehow!?\n",
+							"\n",
+							"df.show()"
+						],
+						"outputs": [],
+						"execution_count": 35
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"from great_expectations.data_context import BaseDataContext\n",
+							"from great_expectations.data_context.types.base import (\n",
+							"  DatasourceConfig,\n",
+							"  DataContextConfig,\n",
+							"  InMemoryStoreBackendDefaults,\n",
+							"  FilesystemStoreBackendDefaults\n",
+							")\n",
+							"from great_expectations.core.batch import BatchRequest, RuntimeBatchRequest\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 2
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create a DataContext in code from a DataContextConfig with DatasourceConfig\n",
+							"# TODO: Parameterize what? Connector?\n",
+							"# Example RuntimeDataConnector for use with a dataframe batch\n",
+							"my_spark_datasource_config = DatasourceConfig(\n",
+							"    class_name=\"Datasource\",\n",
+							"    execution_engine={\n",
+							"        \"class_name\": \"SparkDFExecutionEngine\",\n",
+							"        \"azure_options\": {\n",
+							"            \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+							"            \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+							"        },\n",
+							"    },\n",
+							"    data_connectors={\n",
+							"        \"default_inferred_data_connector_name\": {\n",
+							"            \"class_name\": \"InferredAssetAzureDataConnector\",\n",
+							"            \"azure_options\": {\n",
+							"                \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+							"                \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+							"            },\n",
+							"            \"container\": \"lake\",\n",
+							"            \"name_starts_with\": \"RAW\",\n",
+							"            \"default_regex\": {\n",
+							"                \"pattern\": \"(.*)\\\\.parquet\",\n",
+							"                \"group_names\": [\"data_asset_name\"],\n",
+							"            },\n",
+							"        },\n",
+							"    }\n",
+							")\n",
+							"\n",
+							"stores = {\n",
+							"    \"expectations_azure_store\": {\n",
+							"        \"store_backend\": {\n",
+							"            \"class_name\": \"TupleAzureBlobStoreBackend\",\n",
+							"            \"container\": \"lake\",\n",
+							"            \"prefix\": \"great_expectations/expectations\",\n",
+							"            \"connection_string\": \"DefaultEndpointsProtocol=https;AccountName=chrispstore;AccountKey=0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==;EndpointSuffix=core.windows.net\"\n",
+							"        }\n",
+							"    },\n",
+							"    \"validations_azure_store\": {\n",
+							"        \"store_backend\": {\n",
+							"            \"class_name\": \"TupleAzureBlobStoreBackend\",\n",
+							"            \"container\": \"lake\",\n",
+							"            \"prefix\": \"great_expectations/validations\",\n",
+							"            \"connection_string\": \"DefaultEndpointsProtocol=https;AccountName=chrispstore;AccountKey=0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==;EndpointSuffix=core.windows.net\"\n",
+							"        }\n",
+							"    }\n",
+							"}\n",
+							"\n",
+							"data_docs_sites = {\n",
+							"    \"adls_site\": {\n",
+							"        \"class_name\": \"SiteBuilder\",\n",
+							"        \"store_backend\": {\n",
+							"            \"class_name\": \"TupleAzureBlobStoreBackend\",\n",
+							"            \"container\":  \"my_data_docs_bucket\",\n",
+							"            \"prefix\":  \"great_expectations/data_docs\",\n",
+							"            \"connection_string\": \"DefaultEndpointsProtocol=https;AccountName=chrispstore;AccountKey=0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==;EndpointSuffix=core.windows.net\"\n",
+							"        },\n",
+							"        \"site_index_builder\": {\n",
+							"            \"class_name\": \"DefaultSiteIndexBuilder\"\n",
+							"        },\n",
+							"    }\n",
+							"}\n",
+							"\n",
+							"# TODO: Parameterize source name\n",
+							"project_config = DataContextConfig(\n",
+							"    datasources={\"insert_your_datasource_name_here\": my_spark_datasource_config},\n",
+							"    store_backend_defaults=InMemoryStoreBackendDefaults(),\n",
+							"    stores=stores,\n",
+							"    expectations_store_name=\"expectations_azure_store\",\n",
+							"    validations_store_name=\"validations_azure_store\",\n",
+							"    data_docs_sites=data_docs_sites\n",
+							")\n",
+							"\n",
+							"context = BaseDataContext(project_config=project_config)\n",
+							"\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 3
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create a RuntimeBatchRequest\n",
+							"# TODO: Parametireze \n",
+							"\n",
+							"batch_request = RuntimeBatchRequest(\n",
+							"    datasource_name=\"insert_your_datasource_name_here\",\n",
+							"    data_connector_name=\"insert_your_runtime_data_connector_name_here\",\n",
+							"    data_asset_name=\"insert_your_data_asset_name_here\",\n",
+							"    runtime_parameters={\n",
+							"      \"batch_data\": df\n",
+							"    },\n",
+							"    batch_identifiers={\"batch_id\": \"default_identifier\"}\n",
+							")\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 32
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"# Create or load your Expectation Suite\n",
+							"# NOTE: You should either create or load, this try/except block is for convenience\n",
+							"# TODO: Parametirize SUITE\n",
+							"# TODO: Validation actions \n",
+							"# TODO: custom validators?\n",
+							"from great_expectations.exceptions import DataContextError\n",
+							"try:\n",
+							"  suite = context.create_expectation_suite(\"insert_your_suite_name_here\")\n",
+							"except DataContextError:\n",
+							"  suite = context.get_expectation_suite(\"insert_your_suite_name_here\")\n",
+							"\n",
+							"# Get a Validator\n",
+							"\n",
+							"my_validator = context.get_validator(\n",
+							"    batch_request=batch_request,\n",
+							"    expectation_suite=suite\n",
+							")\n",
+							"\n",
+							""
+						],
+						"outputs": [],
+						"execution_count": 33
+					},
+					{
+						"cell_type": "code",
+						"metadata": {},
+						"source": [
+							"%%pyspark\n",
+							"\n",
+							"# Add Expectations\n",
+							"\n",
+							"my_validator.expect_table_row_count_to_equal(4)\n",
+							"my_validator.expect_column_values_to_not_be_null(\"a\")\n",
+							"\n",
+							"# Save the Expectation Suite to the Expectation Store\n",
+							"\n",
+							"#my_validator.save_expectation_suite(discard_failed_expectations=False)\n",
+							"\n",
+							"# TODO: store result to ADLSgen2\n",
+							"# TODO: Checkpoints? https://docs.greatexpectations.io/docs/reference/checkpoints_and_actions"
+						],
+						"outputs": [],
+						"execution_count": 34
+					}
+				]
 			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/notebooks/RawToBase')]"
-			]
+			"dependsOn": []
 		}
 	]
 }
