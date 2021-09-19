@@ -59,7 +59,66 @@
 					"    FilesystemStoreBackendDefaults\n",
 					")"
 				],
-				"execution_count": 31
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"# Example RuntimeDataConnector for use with a dataframe batch\n",
+					"my_spark_datasource_config = DatasourceConfig(\n",
+					"    class_name=\"Datasource\",\n",
+					"    execution_engine={\n",
+					"        \"class_name\": \"SparkDFExecutionEngine\"\n",
+					"        \"azure_options\": {\n",
+					"            \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+					"            \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+					"        },\n",
+					"    },\n",
+					"    data_connectors={\n",
+					"        \"default_inferred_data_connector_name\": {\n",
+					"            \"class_name\": \"InferredAssetAzureDataConnector\",\n",
+					"            \"azure_options\": {\n",
+					"                \"account_url\": \"https://chrispstore.blob.core.windows.net/\",\n",
+					"                \"credential\": \"0kERLDuhspa8LpIeEhQllsvBAOw9bOWhob/0sm319WgaJtHSxRTqh9jhKlSv90WsV/tWs06PLL2szXPVE69CQQ==\",\n",
+					"            },\n",
+					"            \"container\": \"lake\",\n",
+					"            \"name_starts_with\": \"RAW\",\n",
+					"            \"default_regex\": {\n",
+					"                \"pattern\": \"(.*)\\\\.parquet\",\n",
+					"                \"group_names\": [\"data_asset_name\"],\n",
+					"            },\n",
+					"        },\n",
+					"    }\n",
+					")\n",
+					"\n",
+					"data_context_config = DataContextConfig(\n",
+					"    datasources={\"my_spark_datasource\": my_spark_datasource_config},\n",
+					"    store_backend_defaults=FilesystemStoreBackendDefaults(root_directory=\"/tmp/GreatExpectations/\"),\n",
+					")\n",
+					"context = BaseDataContext(project_config=data_context_config)\n",
+					""
+				],
+				"execution_count": 3
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"context.add_datasource(**datasource_config)\n",
+					"batch_request = BatchRequest(\n",
+					"    datasource_name=\"my_azure_datasource\",\n",
+					"    data_connector_name=\"default_inferred_data_connector_name\",\n",
+					"    data_asset_name=\"GpuRaw\",\n",
+					"    batch_spec_passthrough={\"reader_method\": \"parquet\", \"reader_options\": {\"header\": True}},\n",
+					")\n",
+					"\n",
+					"context.create_expectation_suite(\n",
+					"    expectation_suite_name=\"test_suite\", overwrite_existing=True\n",
+					")\n",
+					"validator = context.get_validator(\n",
+					"    batch_request=batch_request, expectation_suite_name=\"test_suite\"\n",
+					")"
+				],
+				"execution_count": null
 			},
 			{
 				"cell_type": "code",
